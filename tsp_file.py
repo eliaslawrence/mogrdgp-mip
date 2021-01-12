@@ -3,6 +3,10 @@ import random
 import file_manipulation as fm
 import math
 
+CLIENT_TYPE     = "1"
+STATION_TYPE    = "3"
+PROHIBITED_TYPE = "4"
+
 def print_mtrx(mtrx):
 	for line in mtrx:
 		for item in line:
@@ -61,6 +65,27 @@ def gen_clients(file_name):
 
 	return [[pos[0]-min_x, pos[1]-min_y]for pos in pos_lst]
 
+def gen_clients_mtrx(file_name):
+	f = fm.open_file(file_name)
+
+	clients = []
+	line = fm.read_line(f)
+	
+	x,y = 0,0
+
+	while line:
+		line_lst = line.split()
+		for x, cell in enumerate(line_lst):	
+			if cell == CLIENT_TYPE:
+				clients.append([x,y])
+
+		line = fm.read_line(f)
+		y += 1
+
+	fm.close_file(f)
+
+	return clients
+
 def gen_stations(clients, qty):
 	max_x_y = max_pos(clients)
 	max_x   = max_x_y[0]
@@ -80,3 +105,46 @@ def gen_stations(clients, qty):
 			stations.append([x,y])
 	
 	return stations
+
+def gen_stations_mtrx(file_name):
+	f = fm.open_file(file_name)
+
+	stations = []
+	line = fm.read_line(f)
+	
+	x,y = 0,0
+
+	while line:
+		line_lst = line.split()
+		for x, cell in enumerate(line_lst):	
+			if cell == STATION_TYPE:
+				stations.append([x,y])
+
+		line = fm.read_line(f)
+		y += 1
+
+	fm.close_file(f)
+	
+	return stations
+
+def gen_prohibited_mtrx(file_name):
+	f = fm.open_file(file_name)
+
+	prohibited = []
+	line = fm.read_line(f)
+	
+	x,y = 0,0
+
+	while line:
+		line_lst = line.split()
+		for x, cell in enumerate(line_lst):	
+			if cell == PROHIBITED_TYPE:
+				prohibited.append([x,y])
+
+		line = fm.read_line(f)
+		y += 1
+
+	fm.close_file(f)
+	
+	return prohibited
+

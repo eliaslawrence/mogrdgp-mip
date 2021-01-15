@@ -26,63 +26,64 @@ def scatter(ax, pos_clients, pos_stations, pos_prohibited):
 	    ax.scatter((p[0]), (p[1]), marker="o", color="red", s=15)
 	    ax.text((p[0]), (p[1]), "$p_{%d}$" % i)
 
-clients = gen_clients("instances/eil10.tsp")
-max_x_y = max_pos(clients)
-max_x   = max_x_y[0]
-max_y   = max_x_y[1]
+def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 
-stations = gen_stations(clients, 5)
+	clients = gen_clients(instance_file)
+	max_x_y = max_pos(clients)
+	max_x   = max_x_y[0]
+	max_y   = max_x_y[1]
 
-# initial coordinates
-I_x = 0
-I_y = 0
+	stations = gen_stations(clients, 5)
 
-# max velocity
-V_max = 10
+	# initial coordinates
+	I_x = 0
+	I_y = 0
 
-# number of UAVs
-num_uav = 1
+	# max velocity
+	V_max = 10
 
-# grid dimensions
-X_max = max_x#10
-Y_max = max_y#10
+	# number of UAVs
+	num_uav = 1
 
-# initial battery charge
-BI = 100
+	# grid dimensions
+	X_max = max_x#10
+	Y_max = max_y#10
 
-# duration of recharge
-DOR = 0.5
+	# initial battery charge
+	BI = 100
 
-# consume
-VEV = 0.5
-FEV = 0.5#0.5
+	# duration of recharge
+	DOR = 0.5
 
-# clients matrix
-pos_C = clients#[[6,1],[0,4]]#[[6,1],[0,4],[7,6],[3,8]]#[[x1,y1],[x2,y2]...]
-C = set(range(len(pos_C)))
+	# consume
+	VEV = 0.5
+	FEV = 0.5#0.5
 
-# stations matrix
-pos_E = stations#[[2,2]]#[[2,2],[4,4],[1,6]]#[[x1,y1],[x2,y2]...]
-E = set(range(len(pos_E)))
+	# clients matrix
+	pos_C = clients#[[6,1],[0,4]]#[[6,1],[0,4],[7,6],[3,8]]#[[x1,y1],[x2,y2]...]
+	C = set(range(len(pos_C)))
 
-# prohibited matrix
-pos_P = []#[[x1,y1],[x2,y2]...]
-P = set(range(len(pos_P)))
+	# stations matrix
+	pos_E = stations#[[2,2]]#[[2,2],[4,4],[1,6]]#[[x1,y1],[x2,y2]...]
+	E = set(range(len(pos_E)))
 
-# number of UAVs and list of UAVs
-n, U = 1, set(range(1))
+	# prohibited matrix
+	pos_P = []#[[x1,y1],[x2,y2]...]
+	P = set(range(len(pos_P)))
 
-# max time and list of times
-t_max, T = X_max*Y_max - 1, set(range(X_max*Y_max))
+	# number of UAVs and list of UAVs
+	n, U = 1, set(range(1))
 
-fig, ax = plt.subplots()
-scatter(ax, pos_C, pos_E, pos_P)
+	# max time and list of times
+	t_max, T = X_max*Y_max - 1, set(range(X_max*Y_max))
 
-#plt.plot((50, 50), (0, X_max))
+	fig, ax = plt.subplots()
+	scatter(ax, pos_C, pos_E, pos_P)
 
-plt.savefig("location.pdf")
+	#plt.plot((50, 50), (0, X_max))
 
-for count in range(1):
+	plt.savefig("location.pdf")
+
 	model = Model()
 
 	# binary variables indicating if Client 'c' is visited by UAV 'u' on time 't'
@@ -121,31 +122,35 @@ for count in range(1):
 	# integer variable to show battery/fuel rate of UAV u on time t
 	batRate = [[model.add_var() for t in T] for u in U]
 
+	# route consumption
+	consumption = model.add_var()
+
 	# route duration
-	time = model.add_var(var_type=INTEGER)
+	time = model.add_var()
 
 	# UAV charge at the route end
 	finalCharge = model.add_var(var_type=INTEGER)
 
 	#velInv = [[model.add_var() for t in T] for u in U]
 
-	######### OBJECTIVE FUNCTIONS
-	# coeficients
-	a1, a2, a3, a4, a5 = 2, 4, 1, 5*(count+1), 1#2, 4, 1, 20, 1
-
+	######### OBJECTIVE FUNCTIONS	
 	# time + cons - 5 * finalCharge
 	#model.objective = minimize((time + xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for u in U for t in T))/t_max)# - finalCharge/100)
-	model.objective = minimize((xsum(-a3*vel[u][t]/V_max + a4*on[u][t] for u in U for t in T) + xsum(a5*rechargeRate[u][e][t]/100 for u in U for e in E for t in T) + a1*xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for u in U for t in T))/t_max - a2*finalCharge/100)
+	model.objective = minimize((time + coef_1*consumption)/t_max - coef_2*finalCharge/100)
 
 	######### CONSTRAINTS
 
+	# consumption of the route is the maximum consumption among UAVs
+	for u in U:
+		model += consumption >= xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for t in T)
+
 	# final charge of the route is the minimum final charge among UAVs
 	for u in U:
-	    model += finalCharge <= batRate[u][t_max]
+		model += finalCharge <= batRate[u][t_max]
 
 	# route final time
-	#for u in U:
-	#	model += time >= xsum(-a3*vel[u][t]/V_max + a4*on[u][t] for t in T) + xsum(a5*rechargeRate[u][e][t]/100 for e in E for t in T)
+	for u in U:
+		model += time >= xsum(-coef_3*vel[u][t]/V_max + coef_4*on[u][t] for t in T) + xsum(coef_5*rechargeRate[u][e][t]/100 for e in E for t in T)
 	#	model += time >= xsum(velInv[u][t] + (on[u][t] - 1) for t in T) + xsum(rechargeRate[u][e][t]*DOR for e in E for t in T)
 
 	#for u in U:
@@ -237,12 +242,17 @@ for count in range(1):
 				model += rechargeRate[u][e][t] / 100 <= on[u][t] 
 
 	# optimizing
-	model.optimize()
+	model.optimize(max_seconds=300)
+
+	solutions = []
 
 	# checking if a solution was found
 	print('num_solutions:', model.num_solutions)
 	for k in range(model.num_solutions):
 		out.write('routes with total cost %g found: ' % (model.objective_values[k]))
+
+		solutions.append([time.xi(k), consumption.xi(k), finalCharge.xi(k), model.objective_values[k]])
+
 		for u in U:
 			out.write('[%s,%s]' % (pos_x[u][0].xi(k), pos_y[u][0].xi(k)))
 	#		for t in T:
@@ -254,7 +264,7 @@ for count in range(1):
 			plot_y = [pos_y[u][0].xi(k)] 			
 
 			while True:        	
-				if not on[u][t].xi(k):
+				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> [%s,%s]' % (pos_x[u][t].xi(k), pos_y[u][t].xi(k)))							    
 				plot_x.append(pos_x[u][t].xi(k))
@@ -274,7 +284,7 @@ for count in range(1):
 			out.write('VEL: %s' % (vel[u][0].xi(k)))
 			t = 1
 			while True:        	
-				if not on[u][t].xi(k):
+				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> %s' % (vel[u][t].xi(k)))
 				t += 1
@@ -285,7 +295,7 @@ for count in range(1):
 			out.write('BAT RATE: %s' % (batRate[u][0].xi(k)))
 			t = 1
 			while True:        	
-				if not on[u][t].xi(k):
+				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> %s' % (batRate[u][t].xi(k)))
 				t += 1
@@ -297,13 +307,13 @@ for count in range(1):
 				out.write('RECHARGE RATE: %s' % (rechargeRate[u][e][0].xi(k)))
 				t = 1
 				while True:        	
-					if not on[u][t].xi(k):
+					if t > t_max or not on[u][t].xi(k):
 						break
 					out.write(' -> %s' % (rechargeRate[u][e][t].xi(k)))
 					t += 1
 				out.write('\n')
 
-
+	return solutions
 
 
 #print("status =", m.status, "obj =", m.objective_value)

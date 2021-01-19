@@ -1,70 +1,30 @@
 import mogrdgp1 as problem
-
-class Pool:
-	def __init__(self):
-		self.solutions = []
-
-	def add(self, new_sol):
-		for s in self.solutions:
-			if s.dominates(new_sol):
-				return
-			if new_sol.dominates(s):
-				self.solutions.remove(s)
-
-		self.solutions.append(new_sol)
-
-	def write(self):
-		print(len(self.solutions), "solutions")	
-		print("-"*50)
-	
-		for s in self.solutions:
-			print("-"*50)
-			s.write()
-		
-	
-class Solution:
-	def __init__(self, objectives, coefficients):
-		self.objectives   = objectives
-		self.coefficients = coefficients
-
-	def dominates(self, other):
-		greater = False
-
-		for i, o in enumerate(other.objectives):
-			if self.objectives[i] < o:
-				return False
-			if self.objectives[i] > o:
-				greater = True
-
-		return greater
-
-	def write(self):
-		print("Solution (", end=" ")
-
-		for coef in self.coefficients:
-			print(coef, end=" ")
-
-		print("):", end=" ")
-
-		for o in self.objectives:
-			print(o, end=" ")
-
-		print()
+import random
+import matplotlib.pyplot as plt
+import entities		
 
 
-pool = Pool()
+pool = entities.Pool()
+grid = entities.Grid()
 
-for c1 in range(6):
-	for c2 in range(6):
-		for c3 in range(6):
-			for c4 in range(6):
-				for c5 in range(6):
-					solutions = problem.run("instances/eil10.tsp", c1+1, c2+1, c3+1, c4+1, c5+1)
+coefficients = [1]#[0.01, 0.1, 1]
+
+for c1 in coefficients:
+	for c2 in coefficients:
+		for c3 in coefficients:
+			for c4 in coefficients:
+				for c5 in coefficients:
+					color = (random.random(), random.random(), random.random())
+					solutions = problem.run("instances/eil10.tsp", grid, c1, c2, c3, c4, c5, color)
 
 					for i, solution in enumerate(solutions):
-						s = Solution([-solution[0], -solution[1], solution[2]], [c1+1, c2+1, c3+1, c4+1, c5+1]) # -time, -consumption, finalcharge
-						pool.add(s)
+						#s = entities.Solution(0, 0, 0, 0, 0, [-solution[0], -solution[1], solution[2]], [c1, c2, c3, c4, c5], color) # -time, -consumption, finalcharge
+						pool.add(solution)
 
 pool.write()
+pool.plot3D()
+pool.plot2D(0,1)
+pool.plot2D(0,2)
+pool.plot2D(1,2)
 
 

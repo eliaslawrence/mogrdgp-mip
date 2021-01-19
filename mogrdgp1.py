@@ -3,6 +3,7 @@ from itertools import product
 from sys import stdout as out
 from mip import Model, xsum, minimize, BINARY, INTEGER
 from tsp_file import gen_clients, gen_stations, max_pos
+import entities	
 
 def print_matrx(m):
 	for i in range(len(m)):
@@ -26,7 +27,7 @@ def scatter(ax, pos_clients, pos_stations, pos_prohibited):
 	    ax.scatter((p[0]), (p[1]), marker="o", color="red", s=15)
 	    ax.text((p[0]), (p[1]), "$p_{%d}$" % i)
 
-def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
+def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 	clients = gen_clients(instance_file)
 	max_x_y = max_pos(clients)
@@ -70,6 +71,10 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 	# prohibited matrix
 	pos_P = []#[[x1,y1],[x2,y2]...]
 	P = set(range(len(pos_P)))
+
+	grid.clients    = pos_C
+	grid.stations   = pos_E
+	grid.prohibited = pos_P
 
 	# number of UAVs and list of UAVs
 	n, U = 1, set(range(1))
@@ -126,7 +131,8 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 	consumption = model.add_var()
 
 	# route duration
-	time = model.add_var()
+	#time = model.add_var()
+	max_vel, distance, recharge_time = model.add_var(), model.add_var(), model.add_var()
 
 	# UAV charge at the route end
 	finalCharge = model.add_var(var_type=INTEGER)
@@ -136,7 +142,7 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 	######### OBJECTIVE FUNCTIONS	
 	# time + cons - 5 * finalCharge
 	#model.objective = minimize((time + xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for u in U for t in T))/t_max)# - finalCharge/100)
-	model.objective = minimize((time + coef_1*consumption)/t_max - coef_2*finalCharge/100)
+	model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*recharge_time + coef_4*consumption)/t_max - coef_5*finalCharge/100)
 
 	######### CONSTRAINTS
 
@@ -150,7 +156,14 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 
 	# route final time
 	for u in U:
-		model += time >= xsum(-coef_3*vel[u][t]/V_max + coef_4*on[u][t] for t in T) + xsum(coef_5*rechargeRate[u][e][t]/100 for e in E for t in T)
+		model += max_vel <= xsum(vel[u][t]/V_max for t in T)
+
+	for u in U:
+		model += distance >= xsum(on[u][t] for t in T)
+
+	for u in U:
+		model += recharge_time >= xsum(rechargeRate[u][e][t]/100 for e in E for t in T)
+
 	#	model += time >= xsum(velInv[u][t] + (on[u][t] - 1) for t in T) + xsum(rechargeRate[u][e][t]*DOR for e in E for t in T)
 
 	#for u in U:
@@ -251,7 +264,7 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 	for k in range(model.num_solutions):
 		out.write('routes with total cost %g found: ' % (model.objective_values[k]))
 
-		solutions.append([time.xi(k), consumption.xi(k), finalCharge.xi(k), model.objective_values[k]])
+		#solutions.append([-max_vel.xi(k) + distance.xi(k) + recharge_time.xi(k), consumption.xi(k), finalCharge.xi(k), model.objective_values[k]])
 
 		for u in U:
 			out.write('[%s,%s]' % (pos_x[u][0].xi(k), pos_y[u][0].xi(k)))
@@ -277,41 +290,62 @@ def run(instance_file, coef_1, coef_2, coef_3, coef_4, coef_5):
 			ax.plot(plot_x, plot_y, color=(255/255,170/255,0))
 			scatter(ax, pos_C, pos_E, pos_P)
 			plt.savefig("location-sol-%g.pdf" % k)
-			ax.clear()		
+			#ax.clear()		
+			plt.clf()
 
-			############################
+			############################ VELOCITY
 
 			out.write('VEL: %s' % (vel[u][0].xi(k)))
+
+			s_vel = [vel[u][0].xi(k)]
+
 			t = 1
 			while True:        	
 				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> %s' % (vel[u][t].xi(k)))
+
+				s_vel.append(vel[u][t].xi(k))
 				t += 1
 			out.write('\n')
 
-			############################
+			############################ BATTERY RATE
 
 			out.write('BAT RATE: %s' % (batRate[u][0].xi(k)))
+
+			s_bat = [batRate[u][0].xi(k)]
+
 			t = 1
 			while True:        	
 				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> %s' % (batRate[u][t].xi(k)))
+
+				s_bat.append(batRate[u][t].xi(k))
 				t += 1
 			out.write('\n')
 
-			############################
+			############################ RECHARGE RATE
+			s_recharge = []
 
 			for e in E:
 				out.write('RECHARGE RATE: %s' % (rechargeRate[u][e][0].xi(k)))
+				
+				s_recharge_e = [rechargeRate[u][e][0].xi(k)]
+
 				t = 1
 				while True:        	
 					if t > t_max or not on[u][t].xi(k):
 						break
 					out.write(' -> %s' % (rechargeRate[u][e][t].xi(k)))
+
+					s_recharge_e.append(rechargeRate[u][e][t].xi(k))
 					t += 1
 				out.write('\n')
+
+				s_recharge.append(s_recharge_e)
+		
+		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [-(-max_vel.xi(k) + distance.xi(k) + recharge_time.xi(k)), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
 
 	return solutions
 

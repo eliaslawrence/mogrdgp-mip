@@ -3,6 +3,7 @@ import random
 import file_manipulation as fm
 import math
 
+NOTHING_TYPE    = "0"
 CLIENT_TYPE     = "1"
 STATION_TYPE    = "3"
 PROHIBITED_TYPE = "4"
@@ -22,14 +23,31 @@ def max_pos(lst):
 		if pos[1] > max_y:
 			max_y = pos[1]
 
-	return [max_x, max_y]
+	return (max_x, max_y)
 
-def gen_grid(clients, max_x, max_y):
-	grid = [[0]*(max_y+1) for i in range(max_x+1)]
+def gen_grid(clients):
+	max_x, max_y = max_pos(clients)
+
+	grid = [[NOTHING_TYPE]*(max_x+1) for i in range(max_y+1)]
 
 	for pos in clients:
-		grid[pos[0]][pos[1]] = 1
+		grid[pos[1]][pos[0]] = CLIENT_TYPE
 
+	return grid
+
+def gen_grid_from_file(file_name):
+	f = fm.open_file(file_name)
+
+	grid = []
+	line = fm.read_line(f)	
+
+	while line:
+		line_lst = line.split()
+		grid.append(line_lst)
+		line = fm.read_line(f)
+
+	fm.close_file(f)
+	
 	return grid
 
 def gen_clients(file_name):
@@ -65,33 +83,19 @@ def gen_clients(file_name):
 
 	return [[pos[0]-min_x, pos[1]-min_y]for pos in pos_lst]
 
-def gen_clients_mtrx(file_name):
-	f = fm.open_file(file_name)
+def gen_clients_mtrx(grid):
 
 	clients = []
-	line = fm.read_line(f)
-	
-	x,y = 0,0
 
-	while line:
-		line_lst = line.split()
-		for x, cell in enumerate(line_lst):	
+	for y, line in enumerate(grid):
+		for x, cell in enumerate(line):	
 			if cell == CLIENT_TYPE:
 				clients.append([x,y])
 
-		line = fm.read_line(f)
-		y += 1
-
-	fm.close_file(f)
-
 	return clients
 
-def gen_stations(clients, qty):
-	max_x_y = max_pos(clients)
-	max_x   = max_x_y[0]
-	max_y   = max_x_y[1]
-
-	grid = gen_grid(clients, max_x, max_y)
+def gen_stations(grid, qty):
+	max_x, max_y = len(grid[0])-1, len(grid)-1
 
 	stations = []
 	
@@ -100,51 +104,46 @@ def gen_stations(clients, qty):
 		x = random.randint(0, max_x)
 		y = random.randint(0, max_y)
 		
-		if grid[x][y] == 0:
-			grid[x][y] = 2
+		if grid[y][x] == NOTHING_TYPE:
+			grid[y][x] = STATION_TYPE
 			stations.append([x,y])
 	
 	return stations
 
-def gen_stations_mtrx(file_name):
-	f = fm.open_file(file_name)
+def gen_stations_mtrx(grid):
 
 	stations = []
-	line = fm.read_line(f)
-	
-	x,y = 0,0
 
-	while line:
-		line_lst = line.split()
-		for x, cell in enumerate(line_lst):	
+	for y, line in enumerate(grid):
+		for x, cell in enumerate(line):	
 			if cell == STATION_TYPE:
 				stations.append([x,y])
 
-		line = fm.read_line(f)
-		y += 1
-
-	fm.close_file(f)
-	
 	return stations
 
-def gen_prohibited_mtrx(file_name):
-	f = fm.open_file(file_name)
+def gen_prohibited(grid, qty):
+	max_x, max_y = len(grid[0]), len(grid)
 
 	prohibited = []
-	line = fm.read_line(f)
 	
-	x,y = 0,0
+	while len(prohibited) < qty:
+		x = random.randint(0, max_x-1)
+		y = random.randint(0, max_y-1)
+		
+		if grid[y][x] == NOTHING_TYPE:
+			grid[y][x] = PROHIBITED_TYPE
+			prohibited.append([x,y])
+	
+	return prohibited
 
-	while line:
-		line_lst = line.split()
-		for x, cell in enumerate(line_lst):	
+def gen_prohibited_mtrx(grid):
+
+	prohibited = []
+
+	for y, line in enumerate(grid):
+		for x, cell in enumerate(line):	
 			if cell == PROHIBITED_TYPE:
 				prohibited.append([x,y])
 
-		line = fm.read_line(f)
-		y += 1
-
-	fm.close_file(f)
-	
 	return prohibited
 

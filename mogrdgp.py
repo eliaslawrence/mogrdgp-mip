@@ -27,14 +27,10 @@ def scatter(ax, pos_clients, pos_stations, pos_prohibited):
 	    ax.scatter((p[0]), (p[1]), marker="o", color="red", s=15)
 	    ax.text((p[0]), (p[1]), "$p_{%d}$" % i)
 
-def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
+def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
-	clients = gen_clients(instance_file)
-	max_x_y = max_pos(clients)
-	max_x   = max_x_y[0]
-	max_y   = max_x_y[1]
-
-	stations = gen_stations(clients, 5)
+	clients = grid.clients
+	stations = grid.stations
 
 	# initial coordinates
 	I_x = 0
@@ -47,8 +43,9 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	num_uav = 1
 
 	# grid dimensions
-	X_max = max_x#10
-	Y_max = max_y#10
+	X_max, Y_max = grid.dimension()#10
+	X_max -= 1
+	Y_max -= 1
 
 	# initial battery charge
 	BI = 100
@@ -69,12 +66,8 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	E = set(range(len(pos_E)))
 
 	# prohibited matrix
-	pos_P = []#[[x1,y1],[x2,y2]...]
+	pos_P = grid.prohibited#[]#[[x1,y1],[x2,y2]...]
 	P = set(range(len(pos_P)))
-
-	grid.clients    = pos_C
-	grid.stations   = pos_E
-	grid.prohibited = pos_P
 
 	# number of UAVs and list of UAVs
 	n, U = 1, set(range(1))
@@ -96,6 +89,9 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 	# binary variables indicating if Station 'e' is visited by UAV 'u' on time 't'
 	vE = [[[model.add_var(var_type=BINARY) for t in T] for e in E] for u in U]
+
+	# binary variables indicating if Prohibited Point 'p' is visited by UAV 'u' on time 't'
+	vP = [[[model.add_var(var_type=BINARY) for t in T] for p in P] for u in U]
 
 	# binary variables indicating if UAV 'u' is not with coord x greater than coord x from Prohibited Point 'p' on time 't'
 	uP_geq_x = [[[model.add_var(var_type=BINARY) for t in T] for p in P] for u in U]
@@ -142,13 +138,13 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	######### OBJECTIVE FUNCTIONS	
 	# time + cons - 5 * finalCharge
 	#model.objective = minimize((time + xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for u in U for t in T))/t_max)# - finalCharge/100)
-	model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*recharge_time + coef_4*consumption)/t_max - coef_5*finalCharge/100)
+	model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*consumption)/t_max + coef_4*recharge_time - coef_5*finalCharge/100)
 
 	######### CONSTRAINTS
 
 	# consumption of the route is the maximum consumption among UAVs
 	for u in U:
-		model += consumption >= xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for t in T)
+		model += consumption >= xsum(VEV*vel[u][t]/V_max + on[u][t]*FEV for t in T)
 
 	# final charge of the route is the minimum final charge among UAVs
 	for u in U:
@@ -207,14 +203,25 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 		model += xsum(vC[u][c][t] for u in U for t in T) >= 1
 
 	# prohibited points
-	#for u in U:
-	#	for p in P:
-	#		for t in T:
-	#			model +=  pos_x[u][t] - pos_P[p][0] >= 1 - X_max*uP_geq_x[u][p][t]
-	#			model += -pos_x[u][t] + pos_P[p][0] >= 1 - X_max*uP_leq_x[u][p][t]
-	#			model +=  pos_y[u][t] - pos_P[p][1] >= 1 - Y_max*uP_geq_y[u][p][t]
-	#			model += -pos_y[u][t] + pos_P[p][1] >= 1 - Y_max*uP_leq_y[u][p][t]
-	#			model += uP_geq_x[u][p][t] + uP_leq_x[u][p][t] + uP_geq_y[u][p][t] + uP_leq_y[u][p][t] <= 3 
+#	for u in U:
+#		for p in P:
+#			for t in T:
+#				model +=  pos_x[u][t] - pos_P[p][0] <= X_max*(1 - vP[u][p][t])
+#				model += -pos_x[u][t] + pos_P[p][0] <= X_max*(1 - vP[u][p][t])
+#				model +=  pos_y[u][t] - pos_P[p][1] <= Y_max*(1 - vP[u][p][t])
+#				model += -pos_y[u][t] + pos_P[p][1] <= Y_max*(1 - vP[u][p][t])
+
+	# all clients must be visited
+#	model += xsum(vP[u][p][t] for u in U for p in P for t in T) == 0
+
+	for u in U:
+		for p in P:
+			for t in T:
+				model +=  pos_x[u][t] - pos_P[p][0] >= 1 - (X_max + 1)*uP_geq_x[u][p][t]
+				model += -pos_x[u][t] + pos_P[p][0] >= 1 - (X_max + 1)*uP_leq_x[u][p][t]
+				model +=  pos_y[u][t] - pos_P[p][1] >= 1 - (Y_max + 1)*uP_geq_y[u][p][t]
+				model += -pos_y[u][t] + pos_P[p][1] >= 1 - (Y_max + 1)*uP_leq_y[u][p][t]
+				model += uP_geq_x[u][p][t] + uP_leq_x[u][p][t] + uP_geq_y[u][p][t] + uP_leq_y[u][p][t] <= 3 
 
 	# speed limit
 	for u in U:
@@ -345,7 +352,7 @@ def run(instance_file, grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 				s_recharge.append(s_recharge_e)
 		
-		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [-(-max_vel.xi(k) + distance.xi(k) + recharge_time.xi(k)), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
+		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
 
 	return solutions
 

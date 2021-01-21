@@ -1,7 +1,9 @@
-import mogrdgp1 as problem
 import random
 import matplotlib.pyplot as plt
 import chart_manipulation as chrt
+import tsp_file 
+
+OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
 		
 class Param:
 	def __init__(self, lambdas, color):
@@ -9,6 +11,21 @@ class Param:
 		self.lambdas = lambdas	
 
 class Grid:
+	def from_instance(self, file_name):
+		self.clients    = tsp_file.gen_clients(file_name)
+		self.grid 	= tsp_file.gen_grid(self.clients)
+		self.stations   = tsp_file.gen_stations(self.grid, 5)
+		self.prohibited = tsp_file.gen_prohibited(self.grid, 20)
+
+	def from_mtrx(self, file_name):
+		self.grid 	= tsp_file.gen_grid_from_file(file_name)
+		self.clients    = tsp_file.gen_clients_mtrx(self.grid)
+		self.stations   = tsp_file.gen_stations_mtrx(self.grid)
+		self.prohibited = tsp_file.gen_prohibited_mtrx(self.grid)
+
+	def dimension(self):
+		return len(self.grid[0]), len(self.grid)
+	
 	def plot(self, ax):
 		chrt.scatter(ax, self.clients, "black", 'c')
 		chrt.scatter(ax, self.stations, "green", 's')
@@ -76,6 +93,10 @@ class Pool:
 			print("-"*50)
 			s.write()
 
+	def plot_solutions(self, grid):
+		for i, sol in enumerate(self.solutions): 
+			sol.plot(i, grid)
+
 	def plot3D(self):
 		fig = plt.figure()
 		ax  = fig.add_subplot(111, projection='3d')
@@ -90,6 +111,11 @@ class Pool:
 		plt.savefig("pareto-front.pdf")
 		plt.clf()
 
+	def plot2D_all(self):
+		for i in range(5):
+			for j in range(i+1, 5):	
+				self.plot2D(i,j)
+
 	def plot2D(self, objective_0, objective_1):
 		fig = plt.figure()
 		ax  = fig.subplots()
@@ -97,18 +123,8 @@ class Pool:
 		for sol in self.solutions:    
 		    ax.scatter(sol.objectives[objective_0], sol.objectives[objective_1], marker='o', color=sol.param.color)
 
-		xlabel = 'Time'
-		ylabel = 'Consumption'
-
-		if objective_0 == 1:
-			xlabel = 'Consumption'
-		elif objective_0 == 2:
-			xlabel = 'Final Charge'
-
-		if objective_0 == 0:
-			xlabel = 'Time'
-		elif objective_0 == 2:
-			xlabel = 'Final Charge'
+		xlabel = OBJECTIVES[objective_0]
+		ylabel = OBJECTIVES[objective_1]
 
 		ax.set_xlabel(xlabel)
 		ax.set_ylabel(ylabel)

@@ -15,7 +15,7 @@ class Grid:
 		self.clients    = tsp_file.gen_clients(file_name)
 		self.grid 	= tsp_file.gen_grid(self.clients)
 		self.stations   = tsp_file.gen_stations(self.grid, 5)
-		self.prohibited = tsp_file.gen_prohibited(self.grid, 20)
+		self.prohibited = tsp_file.gen_prohibited(self.grid, 10)
 
 	def from_mtrx(self, file_name):
 		self.grid 	= tsp_file.gen_grid_from_file(file_name)
@@ -27,9 +27,9 @@ class Grid:
 		return len(self.grid[0]), len(self.grid)
 	
 	def plot(self, ax):
-		chrt.scatter(ax, self.clients, "black", 'c')
-		chrt.scatter(ax, self.stations, "green", 's')
-		chrt.scatter(ax, self.prohibited, "red", 'p')
+		chrt.scatter(ax, self.clients, "black", 'c', False)
+		chrt.scatter(ax, self.stations, "green", 's', False)
+		chrt.scatter(ax, self.prohibited, "red", 'p', False)
 	
 class Solution:
 	def __init__(self, pos_x, pos_y, vel, battery, recharge, objectives, lambdas, color):
@@ -67,9 +67,19 @@ class Solution:
 
 	def plot(self, name, grid):
 		fig, ax = plt.subplots()
+
+		# PATH
 		ax.plot(self.pos_x, self.pos_y, color=self.param.color)
 		grid.plot(ax)
-		plt.savefig("sol-{}-{}.pdf".format(self.param.lambdas, name))
+		plt.savefig("solutions/sol-{}-{}.pdf".format(self.param.lambdas, name))
+		plt.clf()
+
+		# OBJECTIVE VALUES
+		fig, ax = plt.subplots()
+		ax.plot(OBJECTIVES, self.objectives, color=self.param.color)
+		obj_sct = [[OBJECTIVES[i], self.objectives[i]] for i, obj in enumerate(self.objectives)]
+		chrt.scatter(ax, obj_sct, "black", '', True)
+		plt.savefig("solutions/sol-{}-{}-o.pdf".format(self.param.lambdas, name))
 		plt.clf()
 
 class Pool:

@@ -202,18 +202,6 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	for c in C:
 		model += xsum(vC[u][c][t] for u in U for t in T) >= 1
 
-	# prohibited points
-#	for u in U:
-#		for p in P:
-#			for t in T:
-#				model +=  pos_x[u][t] - pos_P[p][0] <= X_max*(1 - vP[u][p][t])
-#				model += -pos_x[u][t] + pos_P[p][0] <= X_max*(1 - vP[u][p][t])
-#				model +=  pos_y[u][t] - pos_P[p][1] <= Y_max*(1 - vP[u][p][t])
-#				model += -pos_y[u][t] + pos_P[p][1] <= Y_max*(1 - vP[u][p][t])
-
-	# all clients must be visited
-#	model += xsum(vP[u][p][t] for u in U for p in P for t in T) == 0
-
 	for u in U:
 		for p in P:
 			for t in T:

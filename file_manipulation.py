@@ -1,7 +1,7 @@
 #Author: Elias Lawrence
 
-def open_file(file_name):	
-	f = open(file_name, "r")
+def open_file(file_name, open_type):	
+	f = open(file_name, open_type)
 	return f
 
 def close_file(f):	
@@ -15,4 +15,7 @@ def print_file(f):
 
 def read_line(f):		
 	return f.readline()
+
+def write(f, text):		
+	return f.write(text)
 

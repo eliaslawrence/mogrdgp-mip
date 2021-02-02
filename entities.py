@@ -1,6 +1,7 @@
 import random
 import matplotlib.pyplot as plt
 import chart_manipulation as chrt
+import file_manipulation as fm
 import tsp_file 
 
 OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
@@ -25,6 +26,14 @@ class Grid:
 
 	def dimension(self):
 		return len(self.grid[0]), len(self.grid)
+
+	def to_file(self, file_name):
+		fig, ax = plt.subplots()
+
+		self.plot(ax)
+
+		plt.savefig(file_name)
+		plt.clf()
 	
 	def plot(self, ax):
 		chrt.scatter(ax, self.clients, "black", 'c', False)
@@ -82,6 +91,18 @@ class Solution:
 		plt.savefig("solutions/sol-{}-{}-o.pdf".format(self.param.lambdas, name))
 		plt.clf()
 
+	def to_csv(self):
+		text = ""
+
+		ind = 0
+		while ind < len(self.objectives) - 1:
+			text = text + str(self.objectives[ind]) + ","
+			ind += 1
+
+		text = text + str(self.objectives[ind]) + '\n'
+		
+		return text
+
 class Pool:
 	def __init__(self):
 		self.solutions = []
@@ -118,7 +139,7 @@ class Pool:
 		ax.set_ylabel('Consumption')
 		ax.set_zlabel('Final Charge')
 
-		plt.savefig("pareto-front.pdf")
+		plt.savefig("pareto/pareto-front.pdf")
 		plt.clf()
 
 	def plot2D_all(self):
@@ -139,8 +160,18 @@ class Pool:
 		ax.set_xlabel(xlabel)
 		ax.set_ylabel(ylabel)
 
-		plt.savefig("pareto-front-{}-{}.pdf".format(objective_0, objective_1))
+		plt.savefig("pareto/pareto-front-{}-{}.pdf".format(objective_0, objective_1))
 		plt.clf()
+
+	def to_csv(self, file_name):
+		f = fm.open_file("solutions/" + file_name, 'w')
+
+		for sol in self.solutions:    
+		    fm.write(f, sol.to_csv())
+	
+		fm.close_file(f)
+		
+		
 
 
 

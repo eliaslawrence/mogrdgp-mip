@@ -75,12 +75,12 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	# max time and list of times
 	t_max, T = X_max*Y_max - 1, set(range(X_max*Y_max))
 
-	fig, ax = plt.subplots()
-	scatter(ax, pos_C, pos_E, pos_P)
+	#fig, ax = plt.subplots()
+	#scatter(ax, pos_C, pos_E, pos_P)
 
 	#plt.plot((50, 50), (0, X_max))
 
-	plt.savefig("location.pdf")
+	#plt.savefig("location.pdf")
 
 	model = Model()
 
@@ -281,12 +281,12 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 			out.write('\n')	
 
 			# plotting allocations			
-			ax = fig.subplots()
-			ax.plot(plot_x, plot_y, color=(255/255,170/255,0))
-			scatter(ax, pos_C, pos_E, pos_P)
-			plt.savefig("location-sol-%g.pdf" % k)
+#			ax = fig.subplots()
+#			ax.plot(plot_x, plot_y, color=(255/255,170/255,0))
+#			scatter(ax, pos_C, pos_E, pos_P)
+#			plt.savefig("location-sol-%g.pdf" % k)
 			#ax.clear()		
-			plt.clf()
+#			plt.clf()
 
 			############################ VELOCITY
 

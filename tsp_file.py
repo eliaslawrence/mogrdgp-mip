@@ -36,7 +36,7 @@ def gen_grid(clients):
 	return grid
 
 def gen_grid_from_file(file_name):
-	f = fm.open_file(file_name)
+	f = fm.open_file(file_name, 'r')
 
 	grid = []
 	line = fm.read_line(f)	
@@ -51,7 +51,7 @@ def gen_grid_from_file(file_name):
 	return grid
 
 def gen_clients(file_name):
-	f = fm.open_file(file_name)
+	f = fm.open_file(file_name, 'r')
 	fm.read_line(f)
 	fm.read_line(f)
 	fm.read_line(f)

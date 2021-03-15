@@ -147,3 +147,65 @@ def gen_prohibited_mtrx(grid):
 
 	return prohibited
 
+
+def min_max_objectives(file_name):
+	f = fm.open_file(file_name, 'r')
+	fm.read_line(f)
+
+	line = fm.read_line(f)
+	line_lst = line.split(',')
+
+	min_o, max_o = [math.inf for o in line_lst], [-math.inf for o in line_lst]
+
+	while line:
+		line_lst = line.split(',')
+
+		for i, obj in enumerate(line_lst):
+			obj = float(obj)
+
+			if obj < min_o[i]:
+				min_o[i] = obj
+
+			if obj > max_o[i]:
+				max_o[i] = obj
+
+		line = fm.read_line(f)		
+
+	fm.close_file(f)
+
+	return min_o, max_o
+
+def normalize(file_name):
+	min_o, max_o = min_max_objectives(file_name)
+	amp 	     = [max_o[i] - min_o[i] for i, o in enumerate(min_o)]
+
+	n_objectives = len(min_o)
+
+	new_file_name = file_name.replace(".csv", "_NORMALIZED.csv")
+
+	f     = fm.open_file(file_name, 'r')
+	new_f = fm.open_file(new_file_name, 'w')
+
+	line  = fm.read_line(f)
+
+	while line:
+		line_lst = line.split(',')
+
+		text = ""
+
+		ind = 0
+		while ind < n_objectives - 1:
+			text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + ","
+			ind += 1
+
+		text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + '\n'
+		
+		fm.write(new_f, text)
+
+		line = fm.read_line(f)	
+	
+	fm.close_file(f)
+	fm.close_file(new_f)
+
+#normalize("solutions_2/objectives.csv")
+

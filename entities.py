@@ -36,19 +36,19 @@ class Grid:
 		plt.clf()
 	
 	def plot(self, ax):
-		chrt.scatter(ax, self.clients, "black", 'c', False)
+		chrt.scatter(ax, self.clients,  "black", 'c', False)
 		chrt.scatter(ax, self.stations, "green", 's', False)
 		chrt.scatter(ax, self.prohibited, "red", 'p', False)
 	
 class Solution:
 	def __init__(self, pos_x, pos_y, vel, battery, recharge, objectives, lambdas, color):
-		self.objectives = objectives
-		self.param      = Param(lambdas, color)
-		self.pos_x	= pos_x
-		self.pos_y	= pos_y
-		self.vel	= vel
-		self.recharge	= recharge
-		self.battery	= battery
+		self.objectives = objectives            # Objective values
+		self.param      = Param(lambdas, color) # Parameters of the equation that generated this solution
+		self.pos_x	= pos_x                 # List with the position X    of UAVs at each timestamp 
+		self.pos_y	= pos_y                 # List with the position Y    of UAVs at each timestamp
+		self.vel	= vel                   # List with the velocity      of UAVs at each timestamp
+		self.recharge	= recharge              # List with the recharge rate of UAVs at each timestamp
+		self.battery	= battery               # List with the battery rate  of UAVs at each timestamp
 
 	def dominates(self, other):
 		greater = False
@@ -78,8 +78,10 @@ class Solution:
 		fig, ax = plt.subplots()
 
 		# PATH
-		ax.plot(self.pos_x, self.pos_y, color=self.param.color)
-		grid.plot(ax)
+		for i in range(len(self.pos_x)):
+			ax.plot(self.pos_x[i], self.pos_y[i], color=(random.random(),random.random(),random.random()))
+			grid.plot(ax)
+		
 		plt.savefig("solutions/sol-{}-{}.pdf".format(self.param.lambdas, name))
 		plt.clf()
 

@@ -39,9 +39,6 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	# max velocity
 	V_max = 10
 
-	# number of UAVs
-	num_uav = 1
-
 	# grid dimensions
 	X_max, Y_max = grid.dimension()#10
 	X_max -= 1
@@ -70,7 +67,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	P = set(range(len(pos_P)))
 
 	# number of UAVs and list of UAVs
-	n, U = 1, set(range(1))
+	n, U = 2, set(range(2))
 
 	# max time and list of times
 	t_max, T = X_max*Y_max - 1, set(range(X_max*Y_max))
@@ -250,7 +247,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 				model += rechargeRate[u][e][t] / 100 <= on[u][t] 
 
 	# optimizing
-	model.optimize(max_seconds=300)
+#	model.optimize(max_seconds=300)
+	model.optimize()
 
 	solutions = []
 
@@ -259,24 +257,25 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	for k in range(model.num_solutions):
 		out.write('routes with total cost %g found: ' % (model.objective_values[k]))
 
-		#solutions.append([-max_vel.xi(k) + distance.xi(k) + recharge_time.xi(k), consumption.xi(k), finalCharge.xi(k), model.objective_values[k]])
+		plot_x     = []
+		plot_y     = []
+		s_vel      = []
+		s_bat      = []
+		s_recharge = []
 
 		for u in U:
 			out.write('[%s,%s]' % (pos_x[u][0].xi(k), pos_y[u][0].xi(k)))
-	#		for t in T:
-	#			out.write('%s (%s) ->' % (vel[u][t].x, on[u][t].x))
-	#			out.write(' -> [%s,%s]' % (pos_x[u][t].x, pos_y[u][t].x))
 			t = 1
 			
-			plot_x = [pos_x[u][0].xi(k)] 
-			plot_y = [pos_y[u][0].xi(k)] 			
+			plot_x.append([pos_x[u][0].xi(k)])
+			plot_y.append([pos_y[u][0].xi(k)])			
 
 			while True:        	
 				if t > t_max or not on[u][t].xi(k):
 					break
 				out.write(' -> [%s,%s]' % (pos_x[u][t].xi(k), pos_y[u][t].xi(k)))							    
-				plot_x.append(pos_x[u][t].xi(k))
-				plot_y.append(pos_y[u][t].xi(k))
+				plot_x[u].append(pos_x[u][t].xi(k))
+				plot_y[u].append(pos_y[u][t].xi(k))
 				t += 1
 			out.write('\n')	
 
@@ -292,7 +291,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 			out.write('VEL: %s' % (vel[u][0].xi(k)))
 
-			s_vel = [vel[u][0].xi(k)]
+			s_vel.append([vel[u][0].xi(k)])
 
 			t = 1
 			while True:        	
@@ -300,7 +299,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 					break
 				out.write(' -> %s' % (vel[u][t].xi(k)))
 
-				s_vel.append(vel[u][t].xi(k))
+				s_vel[u].append(vel[u][t].xi(k))
 				t += 1
 			out.write('\n')
 
@@ -308,7 +307,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 			out.write('BAT RATE: %s' % (batRate[u][0].xi(k)))
 
-			s_bat = [batRate[u][0].xi(k)]
+			s_bat.append([batRate[u][0].xi(k)])
 
 			t = 1
 			while True:        	
@@ -316,12 +315,12 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 					break
 				out.write(' -> %s' % (batRate[u][t].xi(k)))
 
-				s_bat.append(batRate[u][t].xi(k))
+				s_bat[u].append(batRate[u][t].xi(k))
 				t += 1
 			out.write('\n')
 
 			############################ RECHARGE RATE
-			s_recharge = []
+			s_recharge.append([])
 
 			for e in E:
 				out.write('RECHARGE RATE: %s' % (rechargeRate[u][e][0].xi(k)))
@@ -338,7 +337,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 					t += 1
 				out.write('\n')
 
-				s_recharge.append(s_recharge_e)
+				s_recharge[u].append(s_recharge_e)
 		
 		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
 

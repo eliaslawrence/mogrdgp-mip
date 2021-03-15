@@ -11,24 +11,24 @@ grid.to_file("solutions/grid.pdf")
 
 coefficients = [0.001, 0.01, 0.1, 1]
 
-#c1, c2, c3, c4, c5 = 1, 1, 1, 0.1, 0.1
-#color = (random.random(), random.random(), random.random())
-#solutions = problem.run(grid, c1, c2, c3, c4, c5, color)
+c1, c2, c3, c4, c5 = 1, 1, 1, 0.1, 0.1
+color = (random.random(), random.random(), random.random())
+solutions = problem.run(grid, c1, c2, c3, c4, c5, color)
 
-#for i, solution in enumerate(solutions):
-#	pool.add(solution)
+for i, solution in enumerate(solutions):
+	pool.add(solution)
 
-for c1 in coefficients:
-	for c2 in coefficients:
-		for c3 in coefficients:
-			for c4 in coefficients:
-				for c5 in coefficients:
-					color = (random.random(), random.random(), random.random())
-					solutions = problem.run(grid, c1, c2, c3, c4, c5, color)
+#for c1 in coefficients:
+#	for c2 in coefficients:
+#		for c3 in coefficients:
+#			for c4 in coefficients:
+#				for c5 in coefficients:
+#					color = (random.random(), random.random(), random.random())
+#					solutions = problem.run(grid, c1, c2, c3, c4, c5, color)
 
-					for i, solution in enumerate(solutions):
+#					for i, solution in enumerate(solutions):
 						#s = entities.Solution(0, 0, 0, 0, 0, [-solution[0], -solution[1], solution[2]], [c1, c2, c3, c4, c5], color) # -time, -consumption, finalcharge
-						pool.add(solution)
+#						pool.add(solution)
 
 # Print solutions
 pool.write()

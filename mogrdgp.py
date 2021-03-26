@@ -27,14 +27,14 @@ def scatter(ax, pos_clients, pos_stations, pos_prohibited):
 	    ax.scatter((p[0]), (p[1]), marker="o", color="red", s=15)
 	    ax.text((p[0]), (p[1]), "$p_{%d}$" % i)
 
-def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
+def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 
 	clients = grid.clients
 	stations = grid.stations
 
 	# initial coordinates
-	I_x = 0
-	I_y = 0
+	I_x = grid.origin_x
+	I_y = grid.origin_y
 
 	# max velocity
 	V_max = 10
@@ -51,7 +51,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	DOR = 0.5
 
 	# consume
-	VEV = 0.5
+	VEV = 0.5#0.25
 	FEV = 0.5#0.5
 
 	# clients matrix
@@ -135,7 +135,10 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	######### OBJECTIVE FUNCTIONS	
 	# time + cons - 5 * finalCharge
 	#model.objective = minimize((time + xsum((VEV*vel[u][t]/V_max + on[u][t]*FEV)/(VEV+FEV) for u in U for t in T))/t_max)# - finalCharge/100)
-	model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*consumption)/t_max + coef_4*recharge_time - coef_5*finalCharge/100)
+
+	# Removing objective 1 (Roozbeh analysis)
+	#model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*consumption)/t_max + coef_4*recharge_time - coef_5*finalCharge/100)
+	model.objective = minimize((-coef_1*max_vel + coef_2*consumption)/t_max + coef_3*recharge_time - coef_4*finalCharge/100)
 
 	######### CONSTRAINTS
 
@@ -151,8 +154,9 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 	for u in U:
 		model += max_vel <= xsum(vel[u][t]/V_max for t in T)
 
-	for u in U:
-		model += distance >= xsum(on[u][t] for t in T)
+	# Removing objective 1 (Roozbeh analysis)
+	#for u in U:
+		#model += distance >= xsum(on[u][t] for t in T)
 
 	for u in U:
 		model += recharge_time >= xsum(rechargeRate[u][e][t]/100 for e in E for t in T)
@@ -247,8 +251,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 				model += rechargeRate[u][e][t] / 100 <= on[u][t] 
 
 	# optimizing
-#	model.optimize(max_seconds=300)
-	model.optimize()
+	model.optimize(max_seconds=1200)
+	#model.optimize()
 
 	solutions = []
 
@@ -339,7 +343,10 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, coef_5, color):
 
 				s_recharge[u].append(s_recharge_e)
 		
-		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
+		# Removing objective 1 (Roozbeh analysis)
+		#solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
+
+		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4], color))
 
 	return solutions
 

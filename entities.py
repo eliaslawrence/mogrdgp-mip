@@ -4,7 +4,9 @@ import chart_manipulation as chrt
 import file_manipulation as fm
 import tsp_file 
 
-OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
+# Removing objective 1 (Roozbeh analysis)
+#OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
+OBJECTIVES = ["Velocity", "Recharge Time", "Consumption", "Final Charge"]
 		
 class Param:
 	def __init__(self, lambdas, color):
@@ -12,11 +14,15 @@ class Param:
 		self.lambdas = lambdas	
 
 class Grid:
+	def __init__(self, x, y):
+		self.origin_x = x
+		self.origin_y = y
+
 	def from_instance(self, file_name):
 		self.clients    = tsp_file.gen_clients(file_name)
 		self.grid 	= tsp_file.gen_grid(self.clients)
-		self.stations   = tsp_file.gen_stations(self.grid, 5)
-		self.prohibited = tsp_file.gen_prohibited(self.grid, 10)
+		self.stations   = tsp_file.gen_stations(self, 5)
+		self.prohibited = tsp_file.gen_prohibited(self, 10)
 
 	def from_mtrx(self, file_name):
 		self.grid 	= tsp_file.gen_grid_from_file(file_name)
@@ -27,13 +33,16 @@ class Grid:
 	def dimension(self):
 		return len(self.grid[0]), len(self.grid)
 
-	def to_file(self, file_name):
+	def to_pdf(self, file_name):
 		fig, ax = plt.subplots()
 
 		self.plot(ax)
 
 		plt.savefig(file_name)
 		plt.clf()
+
+	def to_file(self, file_name):
+		tsp_file.mtrx_to_file(self.grid, file_name)
 	
 	def plot(self, ax):
 		chrt.scatter(ax, self.clients,  "black", 'c', False)
@@ -145,8 +154,8 @@ class Pool:
 		plt.clf()
 
 	def plot2D_all(self):
-		for i in range(5):
-			for j in range(i+1, 5):	
+		for i in range(len(OBJECTIVES)):
+			for j in range(i+1, len(OBJECTIVES)):	
 				self.plot2D(i,j)
 
 	def plot2D(self, objective_0, objective_1):
@@ -165,13 +174,16 @@ class Pool:
 		plt.savefig("pareto/pareto-front-{}-{}.pdf".format(objective_0, objective_1))
 		plt.clf()
 
-	def to_csv(self, file_name):
+	def to_csv(self, file_name, normalize):
 		f = fm.open_file("solutions/" + file_name, 'w')
 
 		for sol in self.solutions:    
 		    fm.write(f, sol.to_csv())
 	
 		fm.close_file(f)
+
+		if(normalize):
+			tsp_file.normalize("solutions/" + file_name)
 		
 		
 

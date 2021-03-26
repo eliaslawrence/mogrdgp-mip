@@ -50,6 +50,19 @@ def gen_grid_from_file(file_name):
 	
 	return grid
 
+def mtrx_to_file(mtrx, file_name):
+	f = fm.open_file(file_name, 'w')
+
+	text = ""
+
+	for line in mtrx:		
+		for i in line:
+			text = text + str(i) + " "
+		text = text + "\n"		
+
+	fm.write(f, text)
+	fm.close_file(f)
+
 def gen_clients(file_name):
 	f = fm.open_file(file_name, 'r')
 	fm.read_line(f)
@@ -95,7 +108,7 @@ def gen_clients_mtrx(grid):
 	return clients
 
 def gen_stations(grid, qty):
-	max_x, max_y = len(grid[0])-1, len(grid)-1
+	max_x, max_y = len(grid.grid[0])-1, len(grid.grid)-1
 
 	stations = []
 	
@@ -104,8 +117,8 @@ def gen_stations(grid, qty):
 		x = random.randint(0, max_x)
 		y = random.randint(0, max_y)
 		
-		if grid[y][x] == NOTHING_TYPE:
-			grid[y][x] = STATION_TYPE
+		if grid.grid[y][x] == NOTHING_TYPE and x != grid.origin_x and y != grid.origin_y:
+			grid.grid[y][x] = STATION_TYPE
 			stations.append([x,y])
 	
 	return stations
@@ -122,7 +135,7 @@ def gen_stations_mtrx(grid):
 	return stations
 
 def gen_prohibited(grid, qty):
-	max_x, max_y = len(grid[0]), len(grid)
+	max_x, max_y = len(grid.grid[0]), len(grid.grid)
 
 	prohibited = []
 	
@@ -130,8 +143,8 @@ def gen_prohibited(grid, qty):
 		x = random.randint(0, max_x-1)
 		y = random.randint(0, max_y-1)
 		
-		if grid[y][x] == NOTHING_TYPE:
-			grid[y][x] = PROHIBITED_TYPE
+		if grid.grid[y][x] == NOTHING_TYPE and x != grid.origin_x and y != grid.origin_y:
+			grid.grid[y][x] = PROHIBITED_TYPE
 			prohibited.append([x,y])
 	
 	return prohibited
@@ -195,10 +208,16 @@ def normalize(file_name):
 
 		ind = 0
 		while ind < n_objectives - 1:
-			text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + ","
+			if amp[ind] != 0:
+				text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + ","
+			else:
+				text = text + "1,"
 			ind += 1
 
-		text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + '\n'
+		if amp[ind] != 0:
+			text = text + str((float(line_lst[ind]) - min_o[ind])/amp[ind]) + "\n"
+		else:
+			text = text + "1\n"
 		
 		fm.write(new_f, text)
 
@@ -206,6 +225,4 @@ def normalize(file_name):
 	
 	fm.close_file(f)
 	fm.close_file(new_f)
-
-#normalize("solutions_2/objectives.csv")
 

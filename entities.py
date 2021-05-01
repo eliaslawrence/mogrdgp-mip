@@ -5,8 +5,8 @@ import file_manipulation as fm
 import tsp_file 
 
 # Removing objective 1 (Roozbeh analysis)
-#OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
-OBJECTIVES = ["Velocity", "Recharge Time", "Consumption", "Final Charge"]
+OBJECTIVES = ["Velocity", "Distance", "Recharge Time", "Consumption", "Final Charge"]
+#OBJECTIVES = ["Velocity", "Recharge Time", "Consumption", "Final Charge"]
 		
 class Param:
 	def __init__(self, lambdas, color):
@@ -37,7 +37,7 @@ class Grid:
 		fig, ax = plt.subplots()
 
 		self.plot(ax)
-
+		ax.set_aspect('equal');
 		plt.savefig(file_name)
 		plt.clf()
 
@@ -89,6 +89,7 @@ class Solution:
 		# PATH
 		for i in range(len(self.pos_x)):
 			ax.plot(self.pos_x[i], self.pos_y[i], color=(random.random(),random.random(),random.random()))
+			ax.set_aspect('equal');
 			grid.plot(ax)
 		
 		plt.savefig("solutions/sol-{}-{}.pdf".format(self.param.lambdas, name))

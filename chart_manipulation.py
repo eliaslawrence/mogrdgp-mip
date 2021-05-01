@@ -9,5 +9,5 @@ def scatter(ax, points, color, text, number):
 		if number:
 			ax.text((p[0]), (p[1]), str(p[1]))
 		else:		
-			ax.text((p[0]), (p[1]), "${}_{}$".format(text, i))	
+			ax.text((p[0]), (p[1]), "${}_{}$".format(text, '{' + str(i) + '}'))	
 

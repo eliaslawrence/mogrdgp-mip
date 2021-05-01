@@ -27,7 +27,7 @@ def scatter(ax, pos_clients, pos_stations, pos_prohibited):
 	    ax.scatter((p[0]), (p[1]), marker="o", color="red", s=15)
 	    ax.text((p[0]), (p[1]), "$p_{%d}$" % i)
 
-def run(grid, coef_1, coef_2, coef_3, coef_4, color):
+def run(grid, num_uavs, coefficients, color):
 
 	clients = grid.clients
 	stations = grid.stations
@@ -51,8 +51,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 	DOR = 0.5
 
 	# consume
-	VEV = 0.5#0.25
-	FEV = 0.5#0.5
+	VEV = 1#0.25
+	FEV = 5#0.5
 
 	# clients matrix
 	pos_C = clients#[[6,1],[0,4]]#[[6,1],[0,4],[7,6],[3,8]]#[[x1,y1],[x2,y2]...]
@@ -67,7 +67,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 	P = set(range(len(pos_P)))
 
 	# number of UAVs and list of UAVs
-	n, U = 2, set(range(2))
+	n, U = num_uavs, set(range(num_uavs))
 
 	# max time and list of times
 	t_max, T = X_max*Y_max - 1, set(range(X_max*Y_max))
@@ -103,7 +103,9 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 	uP_leq_y = [[[model.add_var(var_type=BINARY) for t in T] for p in P] for u in U]
 
 	# binary variables indicating if UAV 'u' is working on time 't'
-	on = [[model.add_var(var_type=BINARY) for t in T] for u in U]
+	on  = [[model.add_var(var_type=BINARY) for t in T] for u in U]
+	#onX = [[model.add_var(var_type=BINARY) for t in T] for u in U]
+	#onY = [[model.add_var(var_type=BINARY) for t in T] for u in U]
 
 	# integer variable to show coord x of UAV u on time t
 	pos_x = [[model.add_var(var_type=INTEGER) for t in T] for u in U]
@@ -138,7 +140,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 
 	# Removing objective 1 (Roozbeh analysis)
 	#model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*consumption)/t_max + coef_4*recharge_time - coef_5*finalCharge/100)
-	model.objective = minimize((-coef_1*max_vel + coef_2*consumption)/t_max + coef_3*recharge_time - coef_4*finalCharge/100)
+	model.objective = minimize((-coefficients[0]*max_vel + coefficients[1]*distance + coefficients[2]*consumption)/t_max + coefficients[3]*recharge_time - coefficients[4]*finalCharge/100)
+	#model.objective = minimize((-coefficients[0]*max_vel + coefficients[1]*consumption)/t_max + coefficients[2]*recharge_time - coefficients[3]*finalCharge/100)
 
 	######### CONSTRAINTS
 
@@ -155,8 +158,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 		model += max_vel <= xsum(vel[u][t]/V_max for t in T)
 
 	# Removing objective 1 (Roozbeh analysis)
-	#for u in U:
-		#model += distance >= xsum(on[u][t] for t in T)
+	for u in U:
+		model += distance >= xsum(on[u][t] for t in T)
 
 	for u in U:
 		model += recharge_time >= xsum(rechargeRate[u][e][t]/100 for e in E for t in T)
@@ -177,10 +180,22 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 	for u in U:
 		for t in T:
 			if t >= 1:
+				#model += pos_x[u][t] - pos_x[u][t-1] >= -onX[u][t]
+				#model += pos_x[u][t] - pos_x[u][t-1] <=  onX[u][t]
+				#model += pos_y[u][t] - pos_y[u][t-1] >= -onY[u][t]
+				#model += pos_y[u][t] - pos_y[u][t-1] <=  onY[u][t]
+
 				model += pos_x[u][t] - pos_x[u][t-1] >= -on[u][t]
 				model += pos_x[u][t] - pos_x[u][t-1] <=  on[u][t]
 				model += pos_y[u][t] - pos_y[u][t-1] >= -on[u][t]
 				model += pos_y[u][t] - pos_y[u][t-1] <=  on[u][t]
+
+				# Without diagonal movement
+				#model += onX[u][t] + onY[u][t] ==  on[u][t]
+				#model += pos_x[u][t] - pos_x[u][t-1] + (pos_y[u][t] - pos_y[u][t-1]) >= -on[u][t]
+				#model += pos_x[u][t] - pos_x[u][t-1] - (pos_y[u][t] - pos_y[u][t-1]) >= -on[u][t]
+				#model += pos_x[u][t] - pos_x[u][t-1] + (pos_y[u][t] - pos_y[u][t-1]) <=  on[u][t]
+				#model += pos_x[u][t] - pos_x[u][t-1] - (pos_y[u][t] - pos_y[u][t-1]) <=  on[u][t]
 
 	# grid limits
 	for u in U:
@@ -251,8 +266,8 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 				model += rechargeRate[u][e][t] / 100 <= on[u][t] 
 
 	# optimizing
-	model.optimize(max_seconds=1200)
-	#model.optimize()
+	model.optimize(max_seconds=1000)
+#	model.optimize()
 
 	solutions = []
 
@@ -290,6 +305,7 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 #			plt.savefig("location-sol-%g.pdf" % k)
 			#ax.clear()		
 #			plt.clf()
+
 
 			############################ VELOCITY
 
@@ -344,9 +360,9 @@ def run(grid, coef_1, coef_2, coef_3, coef_4, color):
 				s_recharge[u].append(s_recharge_e)
 		
 		# Removing objective 1 (Roozbeh analysis)
-		#solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4, coef_5], color))
+		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -distance.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], coefficients, color))
 
-		solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], [coef_1, coef_2, coef_3, coef_4], color))
+		#solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], coefficients, color))
 
 	return solutions
 

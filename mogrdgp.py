@@ -140,7 +140,8 @@ def run(grid, num_uavs, coefficients, color):
 
 	# Removing objective 1 (Roozbeh analysis)
 	#model.objective = minimize((-coef_1*max_vel + coef_2*distance + coef_3*consumption)/t_max + coef_4*recharge_time - coef_5*finalCharge/100)
-	model.objective = minimize((-coefficients[0]*max_vel + coefficients[1]*distance + coefficients[2]*consumption)/t_max + coefficients[3]*recharge_time - coefficients[4]*finalCharge/100)
+#	model.objective = minimize((-coefficients[0]*max_vel + coefficients[1]*distance + coefficients[3]*consumption)/t_max + coefficients[2]*recharge_time - coefficients[4]*finalCharge/100)
+	model.objective = minimize(-coefficients[0]*max_vel + coefficients[1]*distance + coefficients[3]*consumption + coefficients[2]*recharge_time - coefficients[4]*finalCharge/100)
 	#model.objective = minimize((-coefficients[0]*max_vel + coefficients[1]*consumption)/t_max + coefficients[2]*recharge_time - coefficients[3]*finalCharge/100)
 
 	######### CONSTRAINTS
@@ -155,7 +156,9 @@ def run(grid, num_uavs, coefficients, color):
 
 	# route final time
 	for u in U:
-		model += max_vel <= xsum(vel[u][t]/V_max for t in T)
+		for t in T: # min_vel
+			model += max_vel <= V_max * (1 - on[u][t]) + vel[u][t] # min_vel
+		#model += max_vel <= xsum(vel[u][t]/V_max for t in T)
 
 	# Removing objective 1 (Roozbeh analysis)
 	for u in U:
@@ -266,7 +269,7 @@ def run(grid, num_uavs, coefficients, color):
 				model += rechargeRate[u][e][t] / 100 <= on[u][t] 
 
 	# optimizing
-	model.optimize(max_seconds=1000)
+	model.optimize(max_seconds=900)
 #	model.optimize()
 
 	solutions = []
@@ -364,7 +367,7 @@ def run(grid, num_uavs, coefficients, color):
 
 		#solutions.append(entities.Solution(plot_x, plot_y, s_vel, s_bat, s_recharge, [max_vel.xi(k), -recharge_time.xi(k), -consumption.xi(k), finalCharge.xi(k)], coefficients, color))
 
-	return solutions
+	return solutions, [model.gap, model.status]
 
 
 #print("status =", m.status, "obj =", m.objective_value)
